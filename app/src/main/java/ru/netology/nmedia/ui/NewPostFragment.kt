@@ -2,7 +2,13 @@ package ru.netology.nmedia.ui
 
 import android.app.Activity
 import android.os.Bundle
-import android.view.*
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
@@ -14,6 +20,7 @@ import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.FragmentNewPostBinding
+import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.util.AndroidUtils
 import ru.netology.nmedia.util.StringArg
 import ru.netology.nmedia.viewmodel.PostViewModel
@@ -56,7 +63,7 @@ class NewPostFragment : Fragment() {
                             Snackbar.LENGTH_LONG
                         ).show()
                     }
-                    Activity.RESULT_OK -> viewModel.changePhoto(it.data?.data)
+                    Activity.RESULT_OK -> viewModel.changePhoto(it.data?.data, null, AttachmentType.IMAGE)
                 }
             }
 
@@ -82,8 +89,24 @@ class NewPostFragment : Fragment() {
                 .createIntent(pickPhotoLauncher::launch)
         }
 
+        val mediaLauncher =
+            registerForActivityResult(ActivityResultContracts.GetContent()) {
+                    uri ->
+                uri?.let {
+                    Log.d("PHOTO", it.toString())
+                    val stream = context?.contentResolver?.openInputStream(it)
+                    viewModel.changePhoto(uri, stream, AttachmentType.VIDEO)
+
+                }
+            }
+
+
+        binding.pickVideo.setOnClickListener {
+            mediaLauncher.launch("video/*")
+        }
+
         binding.removePhoto.setOnClickListener {
-            viewModel.changePhoto(null)
+            viewModel.changePhoto(null, null,null)
         }
 
         viewModel.postCreated.observe(viewLifecycleOwner) {
@@ -96,8 +119,15 @@ class NewPostFragment : Fragment() {
                 return@observe
             }
 
-            binding.photoContainer.visibility = View.VISIBLE
-            binding.photo.setImageURI(it.uri)
+            if (it.type == AttachmentType.IMAGE) {
+                binding.photoContainer.visibility = View.VISIBLE
+                binding.photo.setImageURI(it.uri)
+            }
+
+            if (it.type == AttachmentType.VIDEO) {
+                binding.photoContainer.visibility = View.VISIBLE
+                binding.photo.setImageResource(R.drawable.baseline_smart_display_24)
+            }
         }
 
         requireActivity().addMenuProvider(object : MenuProvider {

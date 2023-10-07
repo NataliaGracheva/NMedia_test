@@ -1,11 +1,14 @@
 package ru.netology.nmedia.repository
 
+import android.util.Log
 import androidx.paging.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import ru.netology.nmedia.api.ApiService
 import ru.netology.nmedia.dao.PostDao
 import ru.netology.nmedia.dao.PostRemoteKeyDao
@@ -22,6 +25,7 @@ import ru.netology.nmedia.error.AppError
 import ru.netology.nmedia.error.NetworkError
 import ru.netology.nmedia.error.UnknownError
 import java.io.IOException
+import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -58,6 +62,7 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
+    // todo - удалить, если не нужно
     override fun getNewerCount(id: Long): Flow<Int> = flow {
         while (true) {
             delay(120_000L)
@@ -77,9 +82,10 @@ class PostRepositoryImpl @Inject constructor(
     override suspend fun save(post: Post, upload: MediaUpload?) {
         try {
             val postWithAttachment = upload?.let {
-                upload(it)
+               upload(it)
             }?.let {
                 // TODO: add support for other types
+                Log.d("PHOTO", it.id)
                 post.copy(attachment = Attachment(it.id, AttachmentType.IMAGE))
             }
             val response = apiService.save(postWithAttachment ?: post)
@@ -96,18 +102,67 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun save(post: Post, stream: InputStream) {
+        try {
+            val postWithAttachment = upload(stream).let {
+                post.copy(attachment = Attachment(it.id, AttachmentType.IMAGE))
+            }
+            val response = apiService.save(postWithAttachment)
+            if (!response.isSuccessful) {
+                throw ApiError(response.code(), response.message())
+            }
+
+            val body = response.body() ?: throw ApiError(response.code(), response.message())
+            postDao.insert(PostEntity.fromDto(body))
+        } catch (e: IOException) {
+            throw NetworkError
+        } catch (e: Exception) {
+            throw UnknownError
+        }
+    }
+
     override suspend fun removeById(id: Long) {
-        TODO("Not yet implemented")
+        postDao.removeById(id)
+        val response = apiService.removeById(id)
+        if (!response.isSuccessful) {
+            throw RuntimeException(response.message())
+        }
     }
 
     override suspend fun likeById(id: Long) {
-        TODO("Not yet implemented")
+//        postDao.likeById(id)
+        val response = apiService.likeById(id)
+        if (!response.isSuccessful) {
+            throw RuntimeException(response.message())
+        }
     }
 
     override suspend fun upload(upload: MediaUpload): Media {
         try {
             val media = MultipartBody.Part.createFormData(
                 "file", upload.file.name, upload.file.asRequestBody()
+            )
+
+            val response = apiService.upload(media)
+            if (!response.isSuccessful) {
+                throw ApiError(response.code(), response.message())
+            }
+
+            return response.body() ?: throw ApiError(response.code(), response.message())
+        } catch (e: IOException) {
+            throw NetworkError
+        } catch (e: Exception) {
+            throw UnknownError
+        }
+    }
+
+    override suspend fun upload(stream: InputStream): Media {
+        try {
+            val media = MultipartBody.Part.createFormData(
+                "file",
+                "name",
+                stream.readBytes()
+                    .toRequestBody("*/*".toMediaTypeOrNull())
             )
 
             val response = apiService.upload(media)

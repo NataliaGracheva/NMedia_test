@@ -10,19 +10,18 @@ import androidx.recyclerview.widget.RecyclerView
 import ru.netology.nmedia.BuildConfig
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.CardPostBinding
-import ru.netology.nmedia.databinding.CardAdBinding
 import ru.netology.nmedia.databinding.CardSeparatorBinding
 import ru.netology.nmedia.dto.DateSeparator
-
 import ru.netology.nmedia.dto.FeedItem
 import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.view.load
 import ru.netology.nmedia.view.loadCircleCrop
 
 class FeedAdapter(
     private val onInteractionListener: OnInteractionListener,
 ) : PagingDataAdapter<FeedItem, RecyclerView.ViewHolder>(FeedItemDiffCallback()) {
-//    private val typeAd = 0
+    //    private val typeAd = 0
     private val typeSeparator = 0
     private val typePost = 1
 
@@ -31,7 +30,11 @@ class FeedAdapter(
         fun onEdit(post: Post) {}
         fun onRemove(post: Post) {}
         fun onShare(post: Post) {}
-//        fun onAdClick(ad: Ad) {}
+
+        //        fun onAdClick(ad: Ad) {}
+        fun onImageClick(post: Post) {}
+        fun onPlayVideo(post: Post) {}
+        fun onPlayAudio(post: Post) {}
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -53,10 +56,12 @@ class FeedAdapter(
             typeSeparator -> SeparatorViewHolder(
                 CardSeparatorBinding.inflate(layoutInflater, parent, false),
             )
+
             typePost -> PostViewHolder(
                 CardPostBinding.inflate(layoutInflater, parent, false),
                 onInteractionListener
             )
+
             else -> throw IllegalArgumentException("unknown view type: $viewType")
         }
     }
@@ -85,7 +90,20 @@ class FeedAdapter(
                 avatar.loadCircleCrop("${BuildConfig.BASE_URL}/avatars/${post.authorAvatar}")
                 like.isChecked = post.likedByMe
                 like.text = "${post.likes}"
+                if (post.attachment != null) {
+                    when (post.attachment.type) {
+                        AttachmentType.IMAGE -> {
+                            attachment.load("${BuildConfig.BASE_URL}/media/${post.attachment.url}")
+                            attachment.visibility = View.VISIBLE
+                        }
+                        AttachmentType.VIDEO -> {
+                            video.setImageResource(R.drawable.baseline_smart_display_24)
+                            play.visibility = View.VISIBLE
+                        }
+                        else -> {}
+                    }
 
+                }
                 menu.visibility = if (post.ownedByMe) View.VISIBLE else View.INVISIBLE
 
                 menu.setOnClickListener {
@@ -99,6 +117,7 @@ class FeedAdapter(
                                     onInteractionListener.onRemove(post)
                                     true
                                 }
+
                                 R.id.edit -> {
                                     onInteractionListener.onEdit(post)
                                     true
@@ -116,6 +135,14 @@ class FeedAdapter(
 
                 share.setOnClickListener {
                     onInteractionListener.onShare(post)
+                }
+
+                attachment.setOnClickListener {
+                    onInteractionListener.onImageClick(post)
+                }
+
+                play.setOnClickListener {
+                    onInteractionListener.onPlayVideo(post)
                 }
             }
         }
@@ -141,11 +168,13 @@ class FeedAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(separator: DateSeparator) {
-            binding.root.setText( when(separator.type) {
-                DateSeparator.DateType.TODAY -> R.string.date_today
-                DateSeparator.DateType.YESTERDAY -> R.string.date_yesterday
-                DateSeparator.DateType.WEEK_AGO -> R.string.date_week_ago
-            })
+            binding.root.setText(
+                when (separator.type) {
+                    DateSeparator.DateType.TODAY -> R.string.date_today
+                    DateSeparator.DateType.YESTERDAY -> R.string.date_yesterday
+                    DateSeparator.DateType.WEEK_AGO -> R.string.date_week_ago
+                }
+            )
         }
     }
 

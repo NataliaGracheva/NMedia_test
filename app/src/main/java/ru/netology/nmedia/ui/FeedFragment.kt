@@ -1,10 +1,12 @@
 package ru.netology.nmedia.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -20,6 +22,8 @@ import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.databinding.FragmentFeedBinding
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.repository.PostRepository
+import ru.netology.nmedia.ui.ImageFragment.Companion.urlArg
+import ru.netology.nmedia.ui.NewPostFragment.Companion.textArg
 import ru.netology.nmedia.viewmodel.PostViewModel
 import javax.inject.Inject
 
@@ -42,6 +46,10 @@ class FeedFragment : Fragment() {
         val adapter = FeedAdapter(object : FeedAdapter.OnInteractionListener {
             override fun onEdit(post: Post) {
                 viewModel.edit(post)
+                findNavController().navigate(R.id.action_feedFragment_to_newPostFragment,
+                    Bundle().apply {
+                        textArg = post.content
+                    })
             }
 
             override fun onLike(post: Post) {
@@ -63,7 +71,39 @@ class FeedFragment : Fragment() {
                     Intent.createChooser(intent, getString(R.string.chooser_share_post))
                 startActivity(shareIntent)
             }
+
+            override fun onImageClick(post: Post) {
+                findNavController().navigate(R.id.action_feedFragment_to_imageFragment,
+                    Bundle().apply {
+                        urlArg = post.attachment?.url
+                    })
+            }
+
+            override fun onPlayVideo(post: Post) {
+                try {
+                    val uri = Uri.parse(post.attachment?.url)
+                    val intent = Intent(Intent.ACTION_VIEW)
+                    intent.setDataAndType(uri, "video/*")
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, R.string.play_error, Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+
+            override fun onPlayAudio(post: Post) {
+                try {
+                val uri = Uri.parse(post.attachment?.url)
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.setDataAndType(uri, "audio/*")
+                startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, R.string.play_error, Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
         })
+
         binding.list.adapter = adapter.withLoadStateHeaderAndFooter(
             header = PagingLoadStateAdapter(object : PagingLoadStateAdapter.OnInteractionListener {
                 override fun onRetry() {
@@ -110,7 +150,9 @@ class FeedFragment : Fragment() {
         binding.swiperefresh.setOnRefreshListener(adapter::refresh)
 
         binding.fab.setOnClickListener {
+            if (auth.authStateFlow.value.id != 0L)
             findNavController().navigate(R.id.action_feedFragment_to_newPostFragment)
+            else findNavController().navigate(R.id.signInFragment)
         }
 
         return binding.root

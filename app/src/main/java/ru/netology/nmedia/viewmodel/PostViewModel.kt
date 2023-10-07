@@ -1,6 +1,7 @@
 package ru.netology.nmedia.viewmodel
 
 import android.net.Uri
+import android.util.Log
 import androidx.core.net.toFile
 import androidx.lifecycle.*
 import androidx.paging.*
@@ -10,17 +11,17 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.dto.DateSeparator
-
 import ru.netology.nmedia.dto.FeedItem
 import ru.netology.nmedia.dto.MediaUpload
 import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.model.FeedModelState
 import ru.netology.nmedia.model.PhotoModel
 import ru.netology.nmedia.repository.PostRepository
 import ru.netology.nmedia.util.SingleLiveEvent
+import java.io.InputStream
 import java.time.LocalDateTime
 import javax.inject.Inject
-import kotlin.random.Random
 
 
 private val empty = Post(
@@ -87,6 +88,8 @@ class PostViewModel @Inject constructor(
             }
 //            pagingData.map { it as FeedItem }
         }
+            // todo - добавить обработку ошибок?
+//        .catch { e -> e.printStackTrace() }
         .cachedIn(viewModelScope)
 
     val data: Flow<PagingData<FeedItem>> = auth.authStateFlow
@@ -140,9 +143,14 @@ class PostViewModel @Inject constructor(
         edited.value?.let {
             viewModelScope.launch {
                 try {
-                    repository.save(
-                        it, _photo.value?.uri?.let { MediaUpload(it.toFile()) }
-                    )
+                    Log.d("PHOTO", _photo.value?.uri.toString())
+                    if (_photo.value?.stream != null) {
+                        repository.save(it, _photo.value?.stream!!)
+                    } else {
+                        repository.save(
+                            it, _photo.value?.uri?.let { MediaUpload(it.toFile()) }
+                        )
+                    }
 
                     _postCreated.value = Unit
                 } catch (e: Exception) {
@@ -166,15 +174,26 @@ class PostViewModel @Inject constructor(
         edited.value = edited.value?.copy(content = text)
     }
 
-    fun changePhoto(uri: Uri?) {
-        _photo.value = PhotoModel(uri)
+    fun changePhoto(uri: Uri?, stream: InputStream?, type: AttachmentType?) {
+        _photo.value = PhotoModel(uri, stream, type)
     }
 
-    fun likeById(id: Long) {
-        TODO()
+    fun likeById(id: Long) = viewModelScope.launch {
+        _dataState.postValue(FeedModelState(loading = true))
+        try {
+            repository.likeById(id)
+            // todo - Как обновить посты?
+        } catch (e: Exception) {
+            _dataState.postValue(FeedModelState(error = true))
+        }
     }
 
-    fun removeById(id: Long) {
-        TODO()
+    fun removeById(id: Long) = viewModelScope.launch {
+        _dataState.postValue(FeedModelState(loading = true))
+        try {
+            repository.removeById(id)
+        } catch (e: Exception) {
+            _dataState.postValue(FeedModelState(error = true))
+        }
     }
 }

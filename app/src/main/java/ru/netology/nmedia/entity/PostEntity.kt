@@ -22,29 +22,29 @@ data class PostEntity(
     var attachment: AttachmentEmbeddable?,
 ) {
     fun toDto() = Post(
-        id,
-        authorId,
-        author,
-        authorAvatar,
-        content,
-        LocalDateTime.ofEpochSecond(published, 0, ZoneOffset.UTC),
-        likedByMe,
-        likes,
-        attachment?.toDto(),
+        id = id,
+        authorId = authorId,
+        author = author,
+        authorAvatar = authorAvatar,
+        content = content,
+        published = LocalDateTime.ofEpochSecond(published, 0, ZoneOffset.UTC),
+        likedByMe = likedByMe,
+        likes = likes,
+        attachment = attachment?.toDto(),
     )
 
     companion object {
         fun fromDto(dto: Post) =
             PostEntity(
-                dto.id,
-                dto.authorId,
-                dto.author,
-                dto.authorAvatar,
-                dto.content,
-                dto.published.toEpochSecond(ZoneOffset.UTC),
-                dto.likedByMe,
-                dto.likes,
-                AttachmentEmbeddable.fromDto(dto.attachment)
+                id = dto.id,
+                authorId = dto.authorId,
+                author = dto.author,
+                authorAvatar = dto.authorAvatar,
+                content = dto.content,
+                published = dto.published.toEpochSecond(ZoneOffset.UTC),
+                likedByMe = dto.likedByMe,
+                likes = dto.likes,
+                attachment = AttachmentEmbeddable.fromDto(dto.attachment)
             )
 
     }

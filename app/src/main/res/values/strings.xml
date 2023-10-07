@@ -32,4 +32,14 @@
     <string name="date_today">Today</string>
     <string name="date_yesterday">Yesterday</string>
     <string name="date_week_ago">Week ago</string>
+    <string name="create_account">Create account</string>
+    <string name="sign_in_name">Sign In</string>
+    <string name="sign_login">Login</string>
+    <string name="sign_password">Password</string>
+    <string name="sign_up_name">Sign Up</string>
+    <string name="sign_repeat_password">Repeat password</string>
+    <string name="sign_user_name">Login</string>
+    <string name="name">Name</string>
+    <string name="play_error">Can\'t play</string>
+    <string name="description_video">Video</string>
 </resources>

@@ -83,17 +83,21 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                 when (menuItem.itemId) {
                     R.id.signin -> {
                         // TODO: just hardcode it, implementation must be in homework
-                        auth.setAuth(5, "x-token")
+//                        auth.setAuth(5, "x-token")
+                        findNavController(R.id.nav_host_fragment)
+                            .navigate(R.id.signInFragment)
                         true
                     }
                     R.id.signup -> {
                         // TODO: just hardcode it, implementation must be in homework
-                        auth.setAuth(5, "x-token")
+//                        auth.setAuth(5, "x-token")
+                        findNavController(R.id.nav_host_fragment).navigate(R.id.signUpFragment)
                         true
                     }
                     R.id.signout -> {
                         // TODO: just hardcode it, implementation must be in homework
                         auth.removeAuth()
+                        findNavController(R.id.nav_host_fragment).navigate(R.id.feedFragment)
                         true
                     }
                     else -> false

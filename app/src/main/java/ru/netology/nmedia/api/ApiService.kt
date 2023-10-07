@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import okhttp3.Interceptor
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -12,6 +13,8 @@ import ru.netology.nmedia.BuildConfig
 import ru.netology.nmedia.dto.Media
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.dto.PushToken
+import ru.netology.nmedia.dto.Token
+import ru.netology.nmedia.dto.User
 import java.time.LocalDateTime
 
 private const val BASE_URL = "${BuildConfig.BASE_URL}/api/slow/"
@@ -77,4 +80,38 @@ interface ApiService {
     @Multipart
     @POST("media")
     suspend fun upload(@Part media: MultipartBody.Part): Response<Media>
+
+
+    @GET("users")
+    suspend fun getUsers(): Response<List<User>>
+
+    @GET("users/{id}")
+    suspend fun getUserById(@Path("id") id: Long): Response<User>
+
+    @POST("users/push-tokens")
+    suspend fun sendPushToken(@Body pushToken: PushToken): Response<Unit>
+
+    @FormUrlEncoded
+    @POST("users/authentication")
+    suspend fun updateUser(
+        @Field("login") login: String,
+        @Field("pass") pass: String,
+    ): Response<Token>
+
+    @Multipart
+    @POST("users/registration")
+    suspend fun registrationUser(
+        @Part("login") login: RequestBody,
+        @Part("pass") pass: RequestBody,
+        @Part("name") name: RequestBody,
+        @Part image: MultipartBody.Part?
+    ): Response<Token>
+
+    @FormUrlEncoded
+    @POST("users/registration")
+    suspend fun registrationUser(
+        @Field("login") login: String,
+        @Field("pass") pass: String,
+        @Field("name") name: String
+    ): Response<Token>
 }
